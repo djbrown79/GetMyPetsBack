@@ -3,19 +3,13 @@ import numpy as np
 import uuid
 from amulet_nbt import StringTag
 
-import amulet.api.data_types.world_types as Dimension
 
-# Replace with your actual UUID mappings
 BEDROCK_TO_JAVA_UUID_MAP = {
-    # "b7348eff-4c5e-47e7-8812-90a7ba3d1b21" : "b7f0091a-cd63-4c39-9595-67aecad1eea2",
-    # "b8162117-e0b6-4367-a290-c641f88834cb": "b7f0091a-cd63-4c39-9595-67aecad1eea2"
+    "PeppyBunion" : { "b7f0091a-cd63-4c39-9595-67aecad1eea2" : "b7348eff-4c5e-47e7-8812-90a7ba3d1b21" },
     # ...
 }
 
-# "3a76ec2b-5191-4f18-9feb-1a1985ef59c7" = [I;980872235,1368477464,-1611982311,-2047911481]
 
-# IMPORTANT: Unlike anvil-parser, Amulet expects the *world folder* that contains level.dat,
-# not just the region folder. So point this to your overall world folder.
 WORLD_FOLDER_PATH = r"D:\ModrinthApp\profiles\Vanilla Chunk Loader\saves\ROBLOX - JAVA"
 
 
@@ -60,7 +54,7 @@ def uuid_str_to_ints(uuid_str):
 def fix_pet_uuids_in_world(world_path, uuid_map, center_x, center_z, radius):
     """
     Loads the Minecraft world using Amulet, then for each chunk in [center_x ± radius, center_z ± radius]
-    attempts to load the chunk, inspects the living entities, and updates OwnerUUID if needed.
+    attempts to load the entities, and updates OwnerUUID if needed.
     """
     print(f"Loading world at {world_path}")
     level = amulet.load_level(world_path)
@@ -73,9 +67,8 @@ def fix_pet_uuids_in_world(world_path, uuid_map, center_x, center_z, radius):
 
     changed_any_chunk = False
 
-    # For each chunk, we attempt to load it from the world
+    # For each chunk, we attempt to load its entities from the world
     for (cx, cz) in chunk_coords:
-        # load_chunk returns (chunk, _), or it may throw an error
         try:
             entities, _ = level.get_native_entities(cx, cz, dimension)
         except Exception as e:
@@ -84,11 +77,9 @@ def fix_pet_uuids_in_world(world_path, uuid_map, center_x, center_z, radius):
             continue
 
         # If chunk.entities is empty, there's no living entity stored in that chunk.
-        #entities = chunk.entities
         if not entities:
             continue
 
-        # print(f"  Checking chunk ({cx},{cz}) for entities...")
         changed_this_chunk = False
 
         for entity in entities:
@@ -96,10 +87,6 @@ def fix_pet_uuids_in_world(world_path, uuid_map, center_x, center_z, radius):
 
             if entity.base_name != "wolf":
                 continue
-
-            # for entity_id, entity_nbt in entities:
-            # You can see the entire entity structure if you want:
-            # print(entity_nbt.pretty_tree())
 
             if 'Owner' in entity_nbt.compound:
                 owner_tag = entity_nbt.compound['Owner']
@@ -124,14 +111,11 @@ def fix_pet_uuids_in_world(world_path, uuid_map, center_x, center_z, radius):
 
             entity.changed = True
 
-            # Write updated chunk data back to the in-memory world
-            # level.pre_save_operation()
-            #entity.changed = True
-            #level.save_chunk(cx, cz, dimension)
+            # Write updated entity data back to the in-memory world
             level.set_native_entites(cx, cz, dimension, entities)
 
     if changed_any_chunk:
-        print("Saving updated chunks to disk...")
+        print("Saving updated entities to disk...")
         # Actually write all in-memory changes out to the world folder
         level.save()
     else:
@@ -148,7 +132,7 @@ def main():
         uuid_map=BEDROCK_TO_JAVA_UUID_MAP,
         center_x=340,  # chunk coordinate
         center_z=319,  # chunk coordinate
-        radius=40
+        radius=5
     )
     print("Done!")
 
